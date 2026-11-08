@@ -274,7 +274,7 @@ export function naturalParse(input, today = null) {
     text = text.replace(/급함|긴급|매우\s*중요/g, ' ');
   }
 
-  const categoryMatch = text.match(/(?:^|\s)#(업무|개인|건강|가족|학습|기타)(?=$|\s)/);
+  const categoryMatch = text.match(/(?:^|\s)#([가-힣A-Za-z0-9_-]+)(?=$|\s)/);
   if (categoryMatch) {
     result.category = categoryMatch[1];
     text = text.replace(categoryMatch[0], ' ');
