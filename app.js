@@ -268,6 +268,7 @@ function renderParsePreview(value) {
   if(p.priority!=='normal')parts.push(priorities[p.priority]);
   const category=p.category||(quickCategory!=='auto'?quickCategory:guessCategory(p.title));
   if(!categories.includes(category)){categories.push(category);localStorage.setItem('haru-categories-v1',JSON.stringify(categories));}
+  if(!categories.includes(category)){categories.push(category);localStorage.setItem('haru-categories-v1',JSON.stringify(categories));}
   parts.push(category);
   if(p.duration)parts.push(`${p.duration}분`);
   box.hidden=false;box.innerHTML=`<span class="preview-title">${esc(p.title||'제목을 입력해 주세요')}</span>${parts.length?`<span class="preview-details">${parts.map((x,i)=>`<i class="preview-token ${i===parts.length-1?'token-category':''}">${esc(x)}</i>`).join('')}</span>`:''}${p.requiresConfirmation?'<span class="preview-warning">날짜 또는 시간을 확인해 주세요</span>':''}`;
