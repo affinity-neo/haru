@@ -3,7 +3,8 @@ import { naturalParse } from './date-parser.js';
 const STORE_KEY = 'haru-items-v1';
 const FIREBASE_KEY = 'haru-firebase-v1';
 const GOOGLE_KEY = 'haru-google-v1';
-const categories = ['업무', '개인', '건강', '가족', '학습', '기타'];
+let categories = ['업무', '개인', '건강', '가족', '학습', '기타'];
+try { const savedCategories=JSON.parse(localStorage.getItem('haru-categories-v1')||'[]'); if(Array.isArray(savedCategories)) categories=[...new Set([...categories,...savedCategories.filter(x=>typeof x==='string'&&x.trim())])]; } catch {}
 const priorities = { high: '높음', normal: '보통', low: '낮음' };
 const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
 let items = loadItems();
@@ -266,6 +267,7 @@ function renderParsePreview(value) {
   if(p.repeat!=='none')parts.push(p.repeat==='daily'?'매일 반복':`${p.repeatDays.map(d=>weekdays[d]).join('·')} 반복`);
   if(p.priority!=='normal')parts.push(priorities[p.priority]);
   const category=p.category||(quickCategory!=='auto'?quickCategory:guessCategory(p.title));
+  if(!categories.includes(category)){categories.push(category);localStorage.setItem('haru-categories-v1',JSON.stringify(categories));}
   parts.push(category);
   if(p.duration)parts.push(`${p.duration}분`);
   box.hidden=false;box.innerHTML=`<span class="preview-title">${esc(p.title||'제목을 입력해 주세요')}</span>${parts.length?`<span class="preview-details">${parts.map((x,i)=>`<i class="preview-token ${i===parts.length-1?'token-category':''}">${esc(x)}</i>`).join('')}</span>`:''}${p.requiresConfirmation?'<span class="preview-warning">날짜 또는 시간을 확인해 주세요</span>':''}`;
@@ -299,7 +301,7 @@ function openTaskDrawer(id=null,prefill={}){
       <label class='drawer-field'><span>계획</span><input class='date-field' type='date' name='plannedDate' value='${a.plannedDate||''}'></label>
       <label class='drawer-field'><span>마감일</span><input class='date-field' type='date' name='dueDate' value='${a.dueDate||''}'></label>
       <label class='drawer-field'><span>시간</span><input class='time-field' type='time' name='start' value='${a.start||''}'></label>
-      <label class='drawer-field'><span>카테고리</span><select class='select-field' name='category'>${categories.map(c=>`<option value='${esc(c)}' ${a.category===c?'selected':''}>${esc(c)}</option>`).join('')}</select></label>
+      <label class='drawer-field'><span>카테고리</span><select class='select-field' name='category'>${categories.map(c=>`<option value='${esc(c)}' ${a.category===c?'selected':''}>${esc(c)}</option>`).join('')}</select><button type='button' class='text-button drawer-add-category' id='drawerAddCategory'>＋ 새 카테고리</button></label>
     </div>
     <div class='drawer-field'><span>하위 업무 <small>${(a.subtasks||[]).length}개</small></span><div class='drawer-subtasks'>${childRows||'<p class=\'drawer-empty\'>아직 하위 업무가 없어요.</p>'}</div>
       <div class='drawer-subtask-add'><input class='text-field' id='drawerSubtaskInput' placeholder='하위 업무 추가'><button class='button button-light' type='button' id='drawerSubtaskAdd'>＋ 추가</button></div></div>
@@ -308,6 +310,7 @@ function openTaskDrawer(id=null,prefill={}){
   </form>`;
   backdrop.hidden=false;
   document.getElementById('drawerCancel').onclick=closeTaskDrawer;
+  document.getElementById('drawerAddCategory').onclick=()=>{const name=prompt('새 카테고리 이름');if(!name||!name.trim())return;const value=name.trim();if(!categories.includes(value)){categories.push(value);localStorage.setItem('haru-categories-v1',JSON.stringify(categories))}openTaskDrawer(x?.id||null,{...a,category:value})};
   const del=document.getElementById('drawerDelete');if(del)del.onclick=()=>{if(!confirm('이 업무를 삭제할까요?'))return;checkpoint();x.deleted=true;x.updatedAt=Date.now();saveItems();closeTaskDrawer();toast('업무를 삭제했어요')};
   document.getElementById('drawerTaskForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.currentTarget),stamp=Date.now(),title=String(f.get('title')||'').trim();if(!title)return;checkpoint();const record={...(x||{id:uid(),type:'task',createdAt:stamp,done:false,subtasks:a.subtasks||[]}),type:'task',title,plannedDate:String(f.get('plannedDate')||'')||null,dueDate:String(f.get('dueDate')||'')||null,start:String(f.get('start')||''),end:'',duration:Number(f.get('duration'))||60,category:String(f.get('category')||'기타'),priority:a.priority||'normal',updatedAt:stamp};if(x)items=items.map(i=>i.id===x.id?record:i);else items.push(record);saveItems();closeTaskDrawer();toast(x?'업무를 수정했어요':'업무를 추가했어요')};
   document.getElementById('drawerSubtaskAdd').onclick=()=>{const input=document.getElementById('drawerSubtaskInput'),title=input.value.trim();if(!title)return;if(x){checkpoint();x.subtasks=x.subtasks||[];x.subtasks.push({id:uid(),title,done:false,createdAt:Date.now(),updatedAt:Date.now()});x.updatedAt=Date.now();saveItems();openTaskDrawer(x.id)}else{a.subtasks=a.subtasks||[];a.subtasks.push({id:uid(),title,done:false,createdAt:Date.now(),updatedAt:Date.now()});openTaskDrawer(null,a)}};
